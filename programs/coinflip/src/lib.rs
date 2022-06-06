@@ -21,6 +21,21 @@ pub mod coinflip {
         Ok(())
     }
 
+    pub fn pay_to_play(ctx: Context<CoinFlip>, amount: u64) -> Result<()> {
+        // send to vault
+        let accts = ctx.accounts;
+        invoke(
+            &system_instruction::transfer(&accts.user.key(), &accts.vault.key(), amount),
+            &[
+                accts.user.to_account_info().clone(),
+                accts.vault.clone(),
+                accts.system_program.to_account_info().clone(),
+            ],
+        )?;
+
+        Ok(())
+    }
+
     pub fn coinflip(ctx: Context<CoinFlip>, amount: u64, rand: u32) -> Result<u64> {
         let c = clock::Clock::get().unwrap();
         let cc = c.unix_timestamp + rand as i64;
@@ -49,14 +64,14 @@ pub mod coinflip {
             accts.user_state.last_rewards = amount;
 
             // send to treasury
-            invoke(
-                &system_instruction::transfer(&accts.user.key(), &accts.vault.key(), amount),
-                &[
-                    accts.user.to_account_info().clone(),
-                    accts.vault.clone(),
-                    accts.system_program.to_account_info().clone(),
-                ],
-            )?;
+            // invoke(
+            //     &system_instruction::transfer(&accts.user.key(), &accts.vault.key(), amount),
+            //     &[
+            //         accts.user.to_account_info().clone(),
+            //         accts.vault.clone(),
+            //         accts.system_program.to_account_info().clone(),
+            //     ],
+            // )?;
 
         }
 
@@ -99,16 +114,15 @@ pub struct Initialize<'info> {
     pub vault: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
-
 }
 
 #[derive(Accounts)]
 pub struct CoinFlip<'info> {
-
     #[account(
         mut,
         seeds = [VAULT_SEED],
-        bump
+        bump,
+        address = user_state.vault
     )]
     /// CHECK: this should be checked with vault address
     pub vault: AccountInfo<'info>,
